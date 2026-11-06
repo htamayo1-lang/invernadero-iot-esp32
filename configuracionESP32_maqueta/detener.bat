@@ -1,7 +1,4 @@
 @echo off
-REM Detiene el programa del ESP32 (COM6) y apaga LEDs, buzzer, servo y Wi-Fi.
-REM El programa vuelve a arrancar solo si desconectas/conectas la placa,
-REM presionas el boton EN, o ejecutas subir.bat.
 chcp 65001 >nul
 set PY=%LOCALAPPDATA%\Programs\Python\Python312\python.exe
 set PUERTO=COM6
