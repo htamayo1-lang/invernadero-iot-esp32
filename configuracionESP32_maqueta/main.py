@@ -18,7 +18,7 @@ VENTANA_ABIERTA = 90
 PAUSA_ANTIRREBOTE = 0.4
 PAUSA_CICLO = 2
 
-boton_modo = Pin(13, Pin.IN, Pin.PULL_UP)
+boton_modo = Pin(config.PIN_BOTON, Pin.IN, Pin.PULL_UP)
 
 estado_sistema = {
     "temp_actual": 0.0,

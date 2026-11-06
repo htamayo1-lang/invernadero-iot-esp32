@@ -1,9 +1,11 @@
 from machine import Pin
 import dht
 
+import config
+
 MAX_LECTURAS = 5
 
-sensor_clima = dht.DHT22(Pin(15))
+sensor_clima = dht.DHT22(Pin(config.PIN_DHT22))
 historial_temp = []
 
 
