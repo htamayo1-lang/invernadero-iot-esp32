@@ -8,10 +8,9 @@ from umqtt.simple import MQTTClient
 import sensores
 import actuadores
 
-# Configuración del botón en GPIO 13 con resistencia interna Pull-Up
 boton_modo = Pin(13, Pin.IN, Pin.PULL_UP)
 
-# Diccionario de configuración y estado del sistema (Requisito: Diccionarios)
+#diccionario
 estado_sistema = {
     "temp_actual": 0.0,
     "temp_promedio": 0.0,
