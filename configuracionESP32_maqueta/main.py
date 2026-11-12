@@ -118,6 +118,14 @@ def revisar_mensajes(cliente):
         pass
 
 
+def esperar_revisando_mensajes(cliente):
+    # Espera PAUSA_CICLO segundos, pero revisa MQTT cada 0.1 s
+    # para que los comandos de la app se apliquen casi al instante.
+    for _ in range(int(PAUSA_CICLO / 0.1)):
+        revisar_mensajes(cliente)
+        time.sleep(0.1)
+
+
 def actualizar_lecturas():
     temp_actual, temp_promedio, humedad = sensores.leer_clima()
     estado_sistema["temp_actual"] = temp_actual
@@ -175,4 +183,4 @@ while True:
         control_automatico()
 
     publicar_telemetria(cliente)
-    time.sleep(PAUSA_CICLO)
+    esperar_revisando_mensajes(cliente)
