@@ -1,7 +1,8 @@
 @echo off
 chcp 65001 >nul
 set PY=%LOCALAPPDATA%\Programs\Python\Python312\python.exe
-set PUERTO=COM6
+REM "auto" detecta solo el puerto del ESP32 (si tienes varias placas pon el COM, ej: COM7)
+set PUERTO=auto
 
 echo Deteniendo el programa del ESP32 en %PUERTO% ...
 "%PY%" -m mpremote connect %PUERTO% exec "from machine import Pin; import network; Pin(2, Pin.OUT).value(0); Pin(4, Pin.OUT).value(0); Pin(5, Pin.OUT).value(0); Pin(18, Pin.OUT).value(0); network.WLAN(network.STA_IF).active(False); print('Programa detenido: LEDs, buzzer, servo y Wi-Fi apagados.')"
