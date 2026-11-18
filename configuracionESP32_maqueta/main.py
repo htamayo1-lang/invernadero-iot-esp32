@@ -13,8 +13,8 @@ CLIENT_ID = "esp32_invernadero_utp"
 TOPIC_PUB = b"invernadero/telemetria"
 TOPIC_SUB = b"invernadero/comandos"
 
-VENTANA_CERRADA = 0
-VENTANA_ABIERTA = 90
+VENTANA_ABIERTA = 0
+VENTANA_CERRADA = 145
 PAUSA_ANTIRREBOTE = 0.4
 PAUSA_CICLO = 2
 

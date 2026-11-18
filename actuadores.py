@@ -2,8 +2,9 @@ from machine import Pin, PWM
 
 import config
 
-ANGULO_MIN = 0
-ANGULO_MAX = 180
+ANGULO_MIN = 0       # compuerta abierta
+ANGULO_MAX = 145     # compuerta cerrada (el servo nunca pasa de aqui)
+ESCALA_SERVO = 180   # el duty se calcula sobre 0-180 grados
 DUTY_MIN = 26
 DUTY_MAX = 128
 
@@ -16,7 +17,7 @@ rele = Pin(config.PIN_RELE, Pin.OUT, value=0)
 
 def mover_ventana(angulo):
     angulo = max(ANGULO_MIN, min(angulo, ANGULO_MAX))
-    duty = int(DUTY_MIN + (angulo / ANGULO_MAX) * (DUTY_MAX - DUTY_MIN))
+    duty = int(DUTY_MIN + (angulo / ESCALA_SERVO) * (DUTY_MAX - DUTY_MIN))
     servo.duty(duty)
     return angulo
 
