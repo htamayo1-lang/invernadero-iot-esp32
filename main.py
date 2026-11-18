@@ -27,7 +27,8 @@ estado_sistema = {
     "umbral_temp": 30.0,
     "modo": "AUTO",
     "angulo_ventana": VENTANA_CERRADA,
-    "alerta": "NORMAL"
+    "alerta": "NORMAL",
+    "bombillo": False
 }
 
 
@@ -76,6 +77,10 @@ def mover_ventana(angulo):
     estado_sistema["angulo_ventana"] = actuadores.mover_ventana(angulo)
 
 
+def encender_bombillo(encender):
+    estado_sistema["bombillo"] = actuadores.encender_bombillo(encender)
+
+
 def recibir_comando_mqtt(topic, msg):
     try:
         datos = ujson.loads(msg.decode())
@@ -88,6 +93,9 @@ def recibir_comando_mqtt(topic, msg):
 
         if "angulo_forzado" in datos and estado_sistema["modo"] == "MANUAL":
             mover_ventana(int(datos["angulo_forzado"]))
+
+        if "bombillo" in datos:
+            encender_bombillo(datos["bombillo"])
 
         print("Comando MQTT aplicado:", datos)
     except Exception as e:
@@ -167,6 +175,7 @@ def iniciar():
 
     mover_ventana(VENTANA_CERRADA)
     actuadores.actualizar_alertas(False)
+    encender_bombillo(False)
     return cliente
 
 

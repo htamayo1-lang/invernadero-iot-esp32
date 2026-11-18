@@ -5,7 +5,7 @@ REM "auto" detecta solo el puerto del ESP32 (si tienes varias placas pon el COM,
 set PUERTO=auto
 
 echo Deteniendo el programa del ESP32 en %PUERTO% ...
-"%PY%" -m mpremote connect %PUERTO% exec "from machine import Pin; import network; Pin(2, Pin.OUT).value(0); Pin(4, Pin.OUT).value(0); Pin(5, Pin.OUT).value(0); Pin(18, Pin.OUT).value(0); network.WLAN(network.STA_IF).active(False); print('Programa detenido: LEDs, buzzer, servo y Wi-Fi apagados.')"
+"%PY%" -m mpremote connect %PUERTO% exec "from machine import Pin; import network; Pin(2, Pin.OUT).value(0); Pin(4, Pin.OUT).value(0); Pin(5, Pin.OUT).value(0); Pin(18, Pin.OUT).value(0); Pin(26, Pin.OUT).value(0); network.WLAN(network.STA_IF).active(False); print('Programa detenido: LEDs, buzzer, servo, rele y Wi-Fi apagados.')"
 
 if errorlevel 1 (
     echo.

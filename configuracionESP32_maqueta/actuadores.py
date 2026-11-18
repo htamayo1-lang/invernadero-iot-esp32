@@ -11,6 +11,7 @@ led_rojo = Pin(config.PIN_LED_ROJO, Pin.OUT)
 led_verde = Pin(config.PIN_LED_VERDE, Pin.OUT)
 buzzer = Pin(config.PIN_BUZZER, Pin.OUT)
 servo = PWM(Pin(config.PIN_SERVO), freq=50)
+rele = Pin(config.PIN_RELE, Pin.OUT, value=0)
 
 
 def mover_ventana(angulo):
@@ -18,6 +19,11 @@ def mover_ventana(angulo):
     duty = int(DUTY_MIN + (angulo / ANGULO_MAX) * (DUTY_MAX - DUTY_MIN))
     servo.duty(duty)
     return angulo
+
+
+def encender_bombillo(encender):
+    rele.value(1 if encender else 0)
+    return bool(encender)
 
 
 def actualizar_alertas(en_alerta):
