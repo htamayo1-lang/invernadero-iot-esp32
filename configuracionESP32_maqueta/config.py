@@ -7,4 +7,6 @@ PIN_LED_ROJO = 2
 PIN_LED_VERDE = 4
 PIN_BUZZER = 5
 PIN_RELE = 26
+# Modulo rele simple: se activa con 0 V y su VCC va a 3V3 (con VIN no se apaga)
+RELE_ACTIVO_BAJO = True
 PIN_BOTON = 13
