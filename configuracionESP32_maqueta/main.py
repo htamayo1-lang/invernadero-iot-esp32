@@ -17,6 +17,7 @@ VENTANA_ABIERTA = 0
 VENTANA_CERRADA = 145
 PAUSA_ANTIRREBOTE = 0.4
 PAUSA_CICLO = 2
+HISTERESIS_BOMBILLO = 0.5
 
 boton_modo = Pin(config.PIN_BOTON, Pin.IN, Pin.PULL_UP)
 
@@ -28,7 +29,8 @@ estado_sistema = {
     "modo": "AUTO",
     "angulo_ventana": VENTANA_CERRADA,
     "alerta": "NORMAL",
-    "bombillo": False
+    "bombillo": False,
+    "umbral_bombillo": 25.0
 }
 
 
@@ -94,7 +96,10 @@ def recibir_comando_mqtt(topic, msg):
         if "angulo_forzado" in datos and estado_sistema["modo"] == "MANUAL":
             mover_ventana(int(datos["angulo_forzado"]))
 
-        if "bombillo" in datos:
+        if "umbral_bombillo" in datos:
+            estado_sistema["umbral_bombillo"] = float(datos["umbral_bombillo"])
+
+        if "bombillo" in datos and estado_sistema["modo"] == "MANUAL":
             encender_bombillo(datos["bombillo"])
 
         print("Comando MQTT aplicado:", datos)
@@ -154,6 +159,17 @@ def control_automatico():
     actuadores.actualizar_alertas(hace_calor)
 
 
+def control_bombillo():
+    # Se prende al llegar al umbral y se apaga 0.5 grados por debajo (para que no titile)
+    temp = estado_sistema["temp_promedio"]
+    umbral = estado_sistema["umbral_bombillo"]
+
+    if not estado_sistema["bombillo"] and temp >= umbral:
+        encender_bombillo(True)
+    elif estado_sistema["bombillo"] and temp < umbral - HISTERESIS_BOMBILLO:
+        encender_bombillo(False)
+
+
 def publicar_telemetria(cliente):
     mensaje = ujson.dumps(estado_sistema)
     print("Telemetría:", mensaje)
@@ -190,6 +206,7 @@ while True:
 
     if estado_sistema["modo"] == "AUTO":
         control_automatico()
+        control_bombillo()
 
     publicar_telemetria(cliente)
     esperar_revisando_mensajes(cliente)
