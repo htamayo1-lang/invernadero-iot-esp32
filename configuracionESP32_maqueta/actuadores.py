@@ -31,7 +31,7 @@ def encender_bombillo(encender):
     return encender
 
 
-def actualizar_alertas(en_alerta):
+def actualizar_alertas(en_alerta, sonar=True):
     led_rojo.value(en_alerta)
     led_verde.value(not en_alerta)
-    buzzer.value(en_alerta)
+    buzzer.value(en_alerta and sonar)

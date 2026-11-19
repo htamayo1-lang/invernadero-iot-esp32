@@ -30,7 +30,8 @@ estado_sistema = {
     "angulo_ventana": VENTANA_CERRADA,
     "alerta": "NORMAL",
     "bombillo": False,
-    "umbral_bombillo": 25.0
+    "umbral_bombillo": 25.0,
+    "silenciado": False
 }
 
 
@@ -83,12 +84,18 @@ def encender_bombillo(encender):
     estado_sistema["bombillo"] = actuadores.encender_bombillo(encender)
 
 
+def poner_modo(modo):
+    estado_sistema["modo"] = modo
+    if modo == "AUTO":
+        estado_sistema["silenciado"] = False  # en AUTO la alarma siempre suena
+
+
 def recibir_comando_mqtt(topic, msg):
     try:
         datos = ujson.loads(msg.decode())
 
-        if "modo" in datos:
-            estado_sistema["modo"] = datos["modo"]
+        if datos.get("modo") in ("AUTO", "MANUAL"):
+            poner_modo(datos["modo"])
 
         if "umbral_temp" in datos:
             estado_sistema["umbral_temp"] = float(datos["umbral_temp"])
@@ -102,6 +109,9 @@ def recibir_comando_mqtt(topic, msg):
         if "bombillo" in datos and estado_sistema["modo"] == "MANUAL":
             encender_bombillo(datos["bombillo"])
 
+        if "silenciar" in datos and estado_sistema["modo"] == "MANUAL":
+            estado_sistema["silenciado"] = bool(datos["silenciar"])
+
         print("Comando MQTT aplicado:", datos)
     except Exception as e:
         print("Error procesando comando MQTT:", e)
@@ -113,10 +123,10 @@ def boton_presionado():
 
 def cambiar_modo():
     if estado_sistema["modo"] == "AUTO":
-        estado_sistema["modo"] = "MANUAL"
+        poner_modo("MANUAL")
         mover_ventana(VENTANA_ABIERTA)
     else:
-        estado_sistema["modo"] = "AUTO"
+        poner_modo("AUTO")
 
     print("Modo cambiado por botón físico a:", estado_sistema["modo"])
     time.sleep(PAUSA_ANTIRREBOTE)
@@ -146,17 +156,19 @@ def actualizar_lecturas():
     estado_sistema["humedad"] = humedad
 
 
-def control_automatico():
+def revisar_alerta():
+    # La alerta funciona en AUTO y en MANUAL; en MANUAL el pitido se puede silenciar
     hace_calor = estado_sistema["temp_promedio"] > estado_sistema["umbral_temp"]
+    estado_sistema["alerta"] = "ALTA_TEMP" if hace_calor else "NORMAL"
+    actuadores.actualizar_alertas(hace_calor, not estado_sistema["silenciado"])
+    return hace_calor
 
+
+def control_automatico(hace_calor):
     if hace_calor:
         mover_ventana(VENTANA_ABIERTA)
-        estado_sistema["alerta"] = "ALTA_TEMP"
     else:
         mover_ventana(VENTANA_CERRADA)
-        estado_sistema["alerta"] = "NORMAL"
-
-    actuadores.actualizar_alertas(hace_calor)
 
 
 def control_bombillo():
@@ -203,9 +215,10 @@ while True:
 
     revisar_mensajes(cliente)
     actualizar_lecturas()
+    hace_calor = revisar_alerta()
 
     if estado_sistema["modo"] == "AUTO":
-        control_automatico()
+        control_automatico(hace_calor)
         control_bombillo()
 
     publicar_telemetria(cliente)
