@@ -25,3 +25,10 @@ class PanelVariables(ttk.LabelFrame):
         barra = ttk.Progressbar(self, maximum=maximo)
         barra.grid(row=fila, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         return barra
+
+    def mostrar(self, estado):
+        self.lbl_temp_actual.config(text=f"{estado['temp_actual']:.1f} °C")
+        self.lbl_temp_promedio.config(text=f"{estado['temp_promedio']:.1f} °C")
+        self.lbl_humedad.config(text=f"{estado['humedad']:.0f} %")
+        self.barra_temp["value"] = estado["temp_promedio"]
+        self.barra_humedad["value"] = estado["humedad"]

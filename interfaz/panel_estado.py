@@ -1,5 +1,16 @@
 from tkinter import ttk
 
+VENTANA_ABIERTA = 0
+VENTANA_CERRADA = 145
+
+
+def texto_compuerta(angulo):
+    if angulo == VENTANA_ABIERTA:
+        return "Abierta"
+    if angulo == VENTANA_CERRADA:
+        return "Cerrada"
+    return f"{angulo}°"
+
 
 class PanelEstado(ttk.LabelFrame):
     def __init__(self, padre):
@@ -16,3 +27,9 @@ class PanelEstado(ttk.LabelFrame):
         valor = ttk.Label(self, text="--", font=("Segoe UI", 10, "bold"))
         valor.grid(row=fila, column=1, sticky="e", pady=2)
         return valor
+
+    def mostrar(self, estado):
+        self.lbl_modo.config(text=estado["modo"])
+        self.lbl_compuerta.config(text=texto_compuerta(estado["angulo_ventana"]))
+        self.lbl_bombillo.config(text="Prendido" if estado["bombillo"] else "Apagado")
+        self.lbl_alerta.config(text="Temperatura alta" if estado["alerta"] != "NORMAL" else "Normal")
