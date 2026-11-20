@@ -61,6 +61,7 @@ class AppInvernadero(tk.Tk):
             self.mostrar(estado)
         else:
             self.panel_controles.mostrar(None)
+            self.panel_estado.mostrar_sin_datos()
 
         self.actualizar_info()
         self.after(INTERVALO_MS, self.actualizar)
