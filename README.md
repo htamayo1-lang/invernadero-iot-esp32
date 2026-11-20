@@ -77,51 +77,30 @@ Broker `broker.hivemq.com`. El ESP32 publica su estado en `invernadero/telemetri
 
 ## Interfaz gráfica (Parcial 3)
 
-Aplicación de escritorio hecha con **Tkinter** para ver el estado del invernadero y controlarlo. Por defecto funciona con **datos simulados**, así que no necesita el ESP32. Desde la lista desplegable *Fuente de datos* se puede cambiar a **ESP32 por MQTT** para usar los datos reales.
-
-### Cómo abrirla
-
-Doble clic en `interfaz/abrir_app.bat`, o:
+Está en `interfaz/app.py`. Es una ventana hecha con **Tkinter** que usa **datos simulados**, así que no necesita el ESP32. Se abre con doble clic en `interfaz/abrir_app.bat` o con:
 
 ```bash
 cd interfaz
 python app.py
 ```
 
-Tkinter viene incluido con Python. Solo el modo MQTT necesita `pip install -r requirements.txt` (paho-mqtt).
+### Qué hace
 
-### Qué tiene
+- Muestra la temperatura y la humedad (con una barra de progreso) y las actualiza cada 2 segundos.
+- Muestra el modo, la compuerta, el bombillo y una alarma: verde si la temperatura es normal y roja si pasa el umbral.
+- En modo **AUTO** la compuerta se abre sola cuando hace calor. En modo **MANUAL** se controla con los botones.
+- Permite cambiar el umbral de alarma. Valida que sea un número entre 20 y 45.
+- Guarda en un historial las mediciones y lo que hace el usuario.
 
-| Sección | Qué muestra o hace | Widgets |
-| :--- | :--- | :--- |
-| Encabezado | Título y selector de fuente de datos | `Label`, `Combobox` |
-| Variables | Temperatura actual, promedio y humedad | `Label`, `Progressbar` |
-| Estado del sistema | Modo, compuerta, bombillo, pitido, umbrales y alarma que parpadea | `Label` con colores |
-| Controles | Modo AUTO/MANUAL, abrir/cerrar compuerta, bombillo, silenciar | `Button` |
-| Configuración | Umbral de alarma y del bombillo, con validación | `Entry`, `Button` |
-| Historial | Tabla de mediciones y lista de eventos | `Notebook`, `Treeview`, `Listbox`, `Scrollbar` |
-| Barra inferior | Fuente, última lectura, número de lecturas y tiempo de uso | `Label` |
+### Cómo está hecho
 
-### Archivos
-
-| Archivo | Contenido |
+| Concepto | Dónde está |
 | :--- | :--- |
-| `app.py` | Clase `AppInvernadero` (hereda de `tk.Tk`): arma la ventana, une los paneles y repite `actualizar()` cada 2 s con `after()` |
-| `panel_variables.py` | Clase `PanelVariables` |
-| `panel_estado.py` | Clase `PanelEstado` (indicadores y alarma) |
-| `panel_controles.py` | Clase `PanelControles` |
-| `panel_configuracion.py` | Clase `PanelConfiguracion` |
-| `panel_historial.py` | Clase `PanelHistorial` |
-| `validacion.py` | Función `validar_numero()` |
-| `simulador.py` | Clase `SimuladorInvernadero`: genera datos con la misma lógica del firmware |
-| `conexion_mqtt.py` | Clase `ConexionMQTT`: recibe la telemetría y envía órdenes al ESP32 |
-
-### Conceptos usados
-
-- **POO:** cada panel es una clase que hereda de `ttk.LabelFrame` y tiene su método `mostrar(estado)`. `SimuladorInvernadero` y `ConexionMQTT` tienen los mismos métodos (`actualizar`, `estado_actual`, `aplicar_comando`), así que la ventana trabaja igual con cualquiera de las dos fuentes.
-- **Gestores de geometría:** `grid` para la ventana principal y los paneles con filas y columnas, y `pack` dentro de los paneles de controles e historial.
-- **`command`:** en los botones (por ejemplo `command=self.abrir_compuerta`). La función se llama sin argumentos.
-- **`bind`:** `<Return>` en los `Entry` aplica los umbrales y `<<ComboboxSelected>>` cambia la fuente de datos. La función recibe el `evento`.
-- **Actualización periódica:** `after(2000, self.actualizar)` pide datos nuevos cada 2 s, y `after(500, self.parpadear)` hace parpadear la alarma.
-- **Validación:** el campo no puede estar vacío, debe ser un número (acepta coma o punto), debe estar dentro del rango, y el umbral del bombillo debe ser menor que el de alarma. Los errores se muestran en rojo y quedan en el historial de eventos.
-- **Datos simulados:** la temperatura sube poco a poco y baja cuando la compuerta está abierta, así que en modo AUTO se ve cómo se activa y se apaga la alarma.
+| POO | Una clase, `AppInvernadero`. Sus atributos guardan el estado (temperatura, modo, umbral...) y cada parte de la ventana se crea en un método `crear_...` |
+| Widgets | `LabelFrame`, `Label`, `Button`, `Entry`, `Combobox`, `Progressbar`, `Listbox` |
+| Gestores de geometría | `pack` para poner los marcos uno debajo del otro y `grid` (filas y columnas) dentro de Controles y Configuración |
+| `command` | Botones: `command=self.mover_compuerta`. La función no recibe nada |
+| `bind` | `<Return>` en el Entry y `<<ComboboxSelected>>` en la lista de modo. La función recibe el `evento` |
+| Actualización periódica | `self.ventana.after(2000, self.actualizar)`: `actualizar()` se vuelve a llamar sola cada 2 s |
+| Datos simulados | `simular_datos()` usa `random`: la temperatura sube poco a poco y baja si la compuerta está abierta |
+| Validación | `aplicar_umbral()`: `try/except` para saber si es número y un `if` para el rango |

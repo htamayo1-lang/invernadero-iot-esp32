@@ -1,172 +1,165 @@
+import random
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 
-from simulador import SimuladorInvernadero
-from conexion_mqtt import ConexionMQTT
-from panel_variables import PanelVariables
-from panel_estado import PanelEstado, texto_compuerta
-from panel_controles import PanelControles
-from panel_historial import PanelHistorial
-from panel_configuracion import PanelConfiguracion
-
-INTERVALO_MS = 2000
-FUENTE_SIMULADA = "Datos simulados"
-FUENTE_MQTT = "ESP32 por MQTT"
+UMBRAL_MIN = 20
+UMBRAL_MAX = 45
 
 
-class AppInvernadero(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Invernadero IoT - Panel de control")
-        self.geometry("980x720")
-        self.minsize(900, 640)
-        self.state("zoomed")
+class AppInvernadero:
+    def __init__(self, ventana):
+        self.ventana = ventana
+        self.ventana.title("Invernadero IoT")
+        self.ventana.geometry("520x620")
 
-        estilo = ttk.Style(self)
-        estilo.theme_use("clam")
-        estilo.configure("TButton", padding=3)
+        self.temperatura = 25.0
+        self.humedad = 60.0
+        self.umbral = 30.0
+        self.modo = "AUTO"
+        self.compuerta_abierta = False
+        self.bombillo_prendido = False
 
-        self.simulador = SimuladorInvernadero()
-        self.mqtt = ConexionMQTT()
-        self.fuente = self.simulador
-        self.estado_anterior = None
-        self.lecturas = 0
-        self.hora_ultima_lectura = "--"
-        self.hora_inicio = time.time()
+        self.crear_variables()
+        self.crear_estado()
+        self.crear_controles()
+        self.crear_configuracion()
+        self.crear_historial()
 
-        self.crear_encabezado()
-        self.crear_paneles()
-        self.crear_barra_estado()
-
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.rowconfigure(3, weight=1)
-
-        self.protocol("WM_DELETE_WINDOW", self.cerrar)
-        self.registrar_evento("Interfaz iniciada con datos simulados")
         self.actualizar()
 
-    def crear_encabezado(self):
-        encabezado = ttk.Frame(self, padding=(15, 6))
-        encabezado.grid(row=0, column=0, columnspan=2, sticky="ew")
+    def crear_variables(self):
+        marco = tk.LabelFrame(self.ventana, text="Variables", padx=10, pady=10)
+        marco.pack(fill="x", padx=10, pady=5)
 
-        ttk.Label(encabezado, text="Invernadero IoT", font=("Segoe UI", 18, "bold")).pack(side="left")
+        self.lbl_temperatura = tk.Label(marco, text="Temperatura: --", font=("Arial", 14))
+        self.lbl_temperatura.pack(anchor="w")
 
-        self.combo_fuente = ttk.Combobox(encabezado, values=[FUENTE_SIMULADA, FUENTE_MQTT], state="readonly", width=18)
-        self.combo_fuente.set(FUENTE_SIMULADA)
-        self.combo_fuente.bind("<<ComboboxSelected>>", self.cambiar_fuente)
-        self.combo_fuente.pack(side="right")
-        ttk.Label(encabezado, text="Fuente de datos:").pack(side="right", padx=5)
+        self.lbl_humedad = tk.Label(marco, text="Humedad: --", font=("Arial", 14))
+        self.lbl_humedad.pack(anchor="w")
 
-    def crear_paneles(self):
-        self.panel_variables = PanelVariables(self)
-        self.panel_variables.grid(row=1, column=0, sticky="nsew", padx=10, pady=3)
+        self.barra_humedad = ttk.Progressbar(marco, maximum=100)
+        self.barra_humedad.pack(fill="x", pady=5)
 
-        self.panel_estado = PanelEstado(self)
-        self.panel_estado.grid(row=1, column=1, sticky="nsew", padx=10, pady=3)
+    def crear_estado(self):
+        marco = tk.LabelFrame(self.ventana, text="Estado", padx=10, pady=10)
+        marco.pack(fill="x", padx=10, pady=5)
 
-        self.panel_controles = PanelControles(self, self.enviar_comando)
-        self.panel_controles.grid(row=2, column=0, sticky="nsew", padx=10, pady=3)
+        self.lbl_estado = tk.Label(marco, text="--")
+        self.lbl_estado.pack(anchor="w")
 
-        self.panel_configuracion = PanelConfiguracion(self, self.enviar_comando, self.registrar_evento)
-        self.panel_configuracion.grid(row=2, column=1, sticky="nsew", padx=10, pady=3)
+        self.lbl_alarma = tk.Label(marco, text="--", font=("Arial", 14, "bold"), fg="white", bg="gray")
+        self.lbl_alarma.pack(fill="x", pady=5)
 
-        self.panel_historial = PanelHistorial(self)
-        self.panel_historial.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=3)
+    def crear_controles(self):
+        marco = tk.LabelFrame(self.ventana, text="Controles", padx=10, pady=10)
+        marco.pack(fill="x", padx=10, pady=5)
 
-    def crear_barra_estado(self):
-        self.lbl_info = ttk.Label(self, text="Iniciando...", relief="sunken", padding=(10, 3))
-        self.lbl_info.grid(row=4, column=0, columnspan=2, sticky="ew")
+        tk.Label(marco, text="Modo:").grid(row=0, column=0, sticky="w")
+        self.combo_modo = ttk.Combobox(marco, values=["AUTO", "MANUAL"], state="readonly", width=10)
+        self.combo_modo.set("AUTO")
+        self.combo_modo.grid(row=0, column=1, sticky="w", pady=3)
+        self.combo_modo.bind("<<ComboboxSelected>>", self.cambiar_modo)
+
+        tk.Button(marco, text="Abrir / cerrar compuerta", command=self.mover_compuerta).grid(row=1, column=0, padx=3, pady=3)
+        tk.Button(marco, text="Prender / apagar bombillo", command=self.cambiar_bombillo).grid(row=1, column=1, padx=3, pady=3)
+
+    def crear_configuracion(self):
+        marco = tk.LabelFrame(self.ventana, text="Configuración", padx=10, pady=10)
+        marco.pack(fill="x", padx=10, pady=5)
+
+        tk.Label(marco, text="Umbral de alarma (°C):").grid(row=0, column=0)
+        self.entry_umbral = tk.Entry(marco, width=8)
+        self.entry_umbral.insert(0, str(self.umbral))
+        self.entry_umbral.grid(row=0, column=1, padx=5)
+        self.entry_umbral.bind("<Return>", self.aplicar_umbral)
+        tk.Button(marco, text="Aplicar", command=self.aplicar_umbral).grid(row=0, column=2)
+
+        self.lbl_mensaje = tk.Label(marco, text="")
+        self.lbl_mensaje.grid(row=1, column=0, columnspan=3, sticky="w")
+
+    def crear_historial(self):
+        marco = tk.LabelFrame(self.ventana, text="Historial", padx=10, pady=10)
+        marco.pack(fill="both", expand=True, padx=10, pady=5)
+
+        self.lista_historial = tk.Listbox(marco)
+        self.lista_historial.pack(fill="both", expand=True)
+
+    def simular_datos(self):
+        self.temperatura += random.uniform(-0.3, 0.8)
+        if self.compuerta_abierta:
+            self.temperatura -= 1.2
+        self.temperatura = max(15, min(self.temperatura, 40))
+        self.humedad = random.uniform(50, 70)
 
     def actualizar(self):
-        estado = self.fuente.actualizar()
-        if estado:
-            self.lecturas += 1
-            self.hora_ultima_lectura = time.strftime("%H:%M:%S")
-            self.mostrar(estado)
-            self.panel_historial.agregar_medicion(estado)
+        self.simular_datos()
+        if self.modo == "AUTO":
+            self.compuerta_abierta = self.temperatura > self.umbral
+
+        self.mostrar_datos()
+        self.agregar_historial(f"Temp: {self.temperatura:.1f} °C   Hum: {self.humedad:.0f} %")
+        self.ventana.after(2000, self.actualizar)
+
+    def mostrar_datos(self):
+        self.lbl_temperatura.config(text=f"Temperatura: {self.temperatura:.1f} °C")
+        self.lbl_humedad.config(text=f"Humedad: {self.humedad:.0f} %")
+        self.barra_humedad["value"] = self.humedad
+
+        compuerta = "Abierta" if self.compuerta_abierta else "Cerrada"
+        bombillo = "Prendido" if self.bombillo_prendido else "Apagado"
+        self.lbl_estado.config(text=f"Modo: {self.modo}   |   Compuerta: {compuerta}   |   Bombillo: {bombillo}")
+
+        if self.temperatura > self.umbral:
+            self.lbl_alarma.config(text="ALERTA: temperatura alta", bg="red")
         else:
-            self.panel_variables.mostrar_sin_datos()
-            self.panel_controles.mostrar(None)
-            self.panel_estado.mostrar_sin_datos()
+            self.lbl_alarma.config(text="Temperatura normal", bg="green")
 
-        self.actualizar_info()
-        self.after(INTERVALO_MS, self.actualizar)
+    def agregar_historial(self, texto):
+        hora = time.strftime("%H:%M:%S")
+        self.lista_historial.insert(0, f"{hora}   {texto}")
 
-    def mostrar(self, estado):
-        self.panel_variables.mostrar(estado)
-        self.panel_estado.mostrar(estado)
-        self.panel_controles.mostrar(estado)
-        self.detectar_cambios(estado)
-        self.estado_anterior = estado
+    def cambiar_modo(self, evento):
+        self.modo = self.combo_modo.get()
+        self.agregar_historial(f"Modo cambiado a {self.modo}")
+        self.mostrar_datos()
 
-    def detectar_cambios(self, estado):
-        anterior = self.estado_anterior
-        if anterior is None:
+    def mover_compuerta(self):
+        if self.modo != "MANUAL":
+            self.agregar_historial("Cambia a modo MANUAL para mover la compuerta")
             return
 
-        if estado["modo"] != anterior["modo"]:
-            self.registrar_evento(f"Modo cambiado a {estado['modo']}")
+        self.compuerta_abierta = not self.compuerta_abierta
+        self.agregar_historial("Compuerta abierta" if self.compuerta_abierta else "Compuerta cerrada")
+        self.mostrar_datos()
 
-        if estado["alerta"] != anterior["alerta"]:
-            if estado["alerta"] == "NORMAL":
-                self.registrar_evento("Temperatura normalizada")
-            else:
-                self.registrar_evento(f"ALERTA: temperatura alta ({estado['temp_promedio']:.1f} °C)")
+    def cambiar_bombillo(self):
+        if self.modo != "MANUAL":
+            self.agregar_historial("Cambia a modo MANUAL para usar el bombillo")
+            return
 
-        if estado["angulo_ventana"] != anterior["angulo_ventana"]:
-            self.registrar_evento(f"Compuerta: {texto_compuerta(estado['angulo_ventana'])}")
+        self.bombillo_prendido = not self.bombillo_prendido
+        self.agregar_historial("Bombillo prendido" if self.bombillo_prendido else "Bombillo apagado")
+        self.mostrar_datos()
 
-        if estado["bombillo"] != anterior["bombillo"]:
-            self.registrar_evento("Bombillo prendido" if estado["bombillo"] else "Bombillo apagado")
+    def aplicar_umbral(self, evento=None):
+        try:
+            valor = float(self.entry_umbral.get())
+        except ValueError:
+            self.lbl_mensaje.config(text="Error: escribe un número", fg="red")
+            return
 
-        if estado["silenciado"] != anterior["silenciado"]:
-            self.registrar_evento("Pitido silenciado" if estado["silenciado"] else "Pitido activado")
+        if valor < UMBRAL_MIN or valor > UMBRAL_MAX:
+            self.lbl_mensaje.config(text=f"Error: el umbral debe estar entre {UMBRAL_MIN} y {UMBRAL_MAX}", fg="red")
+            return
 
-    def registrar_evento(self, texto):
-        self.panel_historial.agregar_evento(texto)
-
-    def enviar_comando(self, descripcion, comando):
-        self.registrar_evento(f"Orden: {descripcion}")
-        self.fuente.aplicar_comando(comando)
-        estado = self.fuente.estado_actual()
-        if estado:
-            self.mostrar(estado)
-
-    def cambiar_fuente(self, evento):
-        seleccion = self.combo_fuente.get()
-
-        if seleccion == FUENTE_MQTT and self.fuente is not self.mqtt:
-            try:
-                self.mqtt.conectar()
-            except Exception as error:
-                messagebox.showerror("No se pudo conectar", str(error))
-                self.combo_fuente.set(FUENTE_SIMULADA)
-                return
-            self.fuente = self.mqtt
-        elif seleccion == FUENTE_SIMULADA and self.fuente is not self.simulador:
-            self.mqtt.desconectar()
-            self.fuente = self.simulador
-
-        self.estado_anterior = None
-        self.registrar_evento(f"Fuente de datos: {seleccion}")
-        self.actualizar_info()
-
-    def actualizar_info(self):
-        minutos, segundos = divmod(int(time.time() - self.hora_inicio), 60)
-        self.lbl_info.config(
-            text=f"Fuente: {self.fuente.descripcion()}   |   "
-                 f"Última lectura: {self.hora_ultima_lectura}   |   "
-                 f"Lecturas: {self.lecturas}   |   "
-                 f"Tiempo de uso: {minutos:02d}:{segundos:02d}"
-        )
-
-    def cerrar(self):
-        self.mqtt.desconectar()
-        self.destroy()
+        self.umbral = valor
+        self.lbl_mensaje.config(text=f"Umbral guardado: {valor} °C", fg="green")
+        self.agregar_historial(f"Umbral cambiado a {valor} °C")
+        self.mostrar_datos()
 
 
 if __name__ == "__main__":
-    app = AppInvernadero()
-    app.mainloop()
+    ventana = tk.Tk()
+    app = AppInvernadero(ventana)
+    ventana.mainloop()
