@@ -1,13 +1,3 @@
-"""
-Invernadero ESP32 - Interfaz SIMPLE (versión para exponer).
-
-Muestra temperatura, humedad y alerta, y permite:
-  - cambiar entre modo AUTO y MANUAL
-  - en MANUAL: abrir/cerrar la compuerta, prender/apagar el bombillo y silenciar el pitido
-
-La app completa (con gráficas y estadísticas) sigue en app_invernadero.py.
-Ejecutar:  python app_simple.py
-"""
 
 import asyncio
 import json
@@ -17,16 +7,16 @@ import uuid
 import flet as ft
 import paho.mqtt.client as mqtt
 
-# --- Conexión MQTT (los mismos datos que usa el ESP32 en main.py) ---
+
 BROKER = "broker.hivemq.com"
-TOPIC_DATOS = "invernadero/telemetria"    # ESP32 -> app
-TOPIC_COMANDOS = "invernadero/comandos"   # app -> ESP32
+TOPIC_DATOS = "invernadero/telemetria"    
+TOPIC_COMANDOS = "invernadero/comandos"   
 
-ABIERTA = 0     # ángulo del servo con la compuerta abierta
-CERRADA = 145   # ángulo del servo con la compuerta cerrada
+ABIERTA = 0     
+CERRADA = 145  
 
-datos = {}          # último mensaje recibido del ESP32
-hora_datos = 0.0    # cuándo llegó
+datos = {}          
+hora_datos = 0.0   
 
 
 def al_recibir(client, userdata, msg):
@@ -70,13 +60,13 @@ def main(page: ft.Page):
     page.window.width = 820
     page.window.height = 620
 
-    # --- Textos que se actualizan con los datos del ESP32 ---
+   
     txt_temp = ft.Text("--", size=36, weight=ft.FontWeight.BOLD)
     txt_hum = ft.Text("--", size=36, weight=ft.FontWeight.BOLD)
     txt_alerta = ft.Text("--", size=36, weight=ft.FontWeight.BOLD)
     txt_estado = ft.Text("Esperando datos del ESP32...", size=16)
 
-    # --- Botones ---
+    # Botones
     btn_auto = ft.FilledButton("Modo AUTO", icon=ft.Icons.AUTO_MODE, on_click=lambda e: enviar({"modo": "AUTO"}))
     btn_manual = ft.FilledButton("Modo MANUAL", icon=ft.Icons.PAN_TOOL, on_click=lambda e: enviar({"modo": "MANUAL"}))
 
