@@ -7,6 +7,7 @@ from panel_variables import PanelVariables
 from panel_estado import PanelEstado, texto_compuerta
 from panel_controles import PanelControles
 from panel_historial import PanelHistorial
+from panel_configuracion import PanelConfiguracion
 
 INTERVALO_MS = 2000
 
@@ -51,6 +52,9 @@ class AppInvernadero(tk.Tk):
 
         self.panel_controles = PanelControles(self, self.enviar_comando)
         self.panel_controles.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+
+        self.panel_configuracion = PanelConfiguracion(self, self.enviar_comando, self.registrar_evento)
+        self.panel_configuracion.grid(row=2, column=1, sticky="nsew", padx=10, pady=5)
 
         self.panel_historial = PanelHistorial(self)
         self.panel_historial.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
