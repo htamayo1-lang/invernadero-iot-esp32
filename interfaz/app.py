@@ -4,8 +4,9 @@ from tkinter import ttk
 
 from simulador import SimuladorInvernadero
 from panel_variables import PanelVariables
-from panel_estado import PanelEstado
+from panel_estado import PanelEstado, texto_compuerta
 from panel_controles import PanelControles
+from panel_historial import PanelHistorial
 
 INTERVALO_MS = 2000
 
@@ -20,6 +21,7 @@ class AppInvernadero(tk.Tk):
 
         self.simulador = SimuladorInvernadero()
         self.fuente = self.simulador
+        self.estado_anterior = None
         self.lecturas = 0
         self.hora_ultima_lectura = "--"
 
@@ -31,6 +33,7 @@ class AppInvernadero(tk.Tk):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3, weight=1)
 
+        self.registrar_evento("Interfaz iniciada con datos simulados")
         self.actualizar()
 
     def crear_encabezado(self):
@@ -49,6 +52,9 @@ class AppInvernadero(tk.Tk):
         self.panel_controles = PanelControles(self, self.enviar_comando)
         self.panel_controles.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
 
+        self.panel_historial = PanelHistorial(self)
+        self.panel_historial.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+
     def crear_barra_estado(self):
         self.lbl_info = ttk.Label(self, text="Iniciando...", relief="sunken", padding=(10, 3))
         self.lbl_info.grid(row=4, column=0, columnspan=2, sticky="ew")
@@ -59,6 +65,7 @@ class AppInvernadero(tk.Tk):
             self.lecturas += 1
             self.hora_ultima_lectura = time.strftime("%H:%M:%S")
             self.mostrar(estado)
+            self.panel_historial.agregar_medicion(estado)
         else:
             self.panel_controles.mostrar(None)
             self.panel_estado.mostrar_sin_datos()
@@ -70,8 +77,37 @@ class AppInvernadero(tk.Tk):
         self.panel_variables.mostrar(estado)
         self.panel_estado.mostrar(estado)
         self.panel_controles.mostrar(estado)
+        self.detectar_cambios(estado)
+        self.estado_anterior = estado
+
+    def detectar_cambios(self, estado):
+        anterior = self.estado_anterior
+        if anterior is None:
+            return
+
+        if estado["modo"] != anterior["modo"]:
+            self.registrar_evento(f"Modo cambiado a {estado['modo']}")
+
+        if estado["alerta"] != anterior["alerta"]:
+            if estado["alerta"] == "NORMAL":
+                self.registrar_evento("Temperatura normalizada")
+            else:
+                self.registrar_evento(f"ALERTA: temperatura alta ({estado['temp_promedio']:.1f} °C)")
+
+        if estado["angulo_ventana"] != anterior["angulo_ventana"]:
+            self.registrar_evento(f"Compuerta: {texto_compuerta(estado['angulo_ventana'])}")
+
+        if estado["bombillo"] != anterior["bombillo"]:
+            self.registrar_evento("Bombillo prendido" if estado["bombillo"] else "Bombillo apagado")
+
+        if estado["silenciado"] != anterior["silenciado"]:
+            self.registrar_evento("Pitido silenciado" if estado["silenciado"] else "Pitido activado")
+
+    def registrar_evento(self, texto):
+        self.panel_historial.agregar_evento(texto)
 
     def enviar_comando(self, descripcion, comando):
+        self.registrar_evento(f"Orden: {descripcion}")
         self.fuente.aplicar_comando(comando)
         estado = self.fuente.estado_actual()
         if estado:
