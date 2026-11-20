@@ -1,8 +1,9 @@
 import time
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from simulador import SimuladorInvernadero
+from conexion_mqtt import ConexionMQTT
 from panel_variables import PanelVariables
 from panel_estado import PanelEstado, texto_compuerta
 from panel_controles import PanelControles
@@ -10,6 +11,8 @@ from panel_historial import PanelHistorial
 from panel_configuracion import PanelConfiguracion
 
 INTERVALO_MS = 2000
+FUENTE_SIMULADA = "Datos simulados"
+FUENTE_MQTT = "ESP32 por MQTT"
 
 
 class AppInvernadero(tk.Tk):
@@ -21,10 +24,12 @@ class AppInvernadero(tk.Tk):
         ttk.Style(self).theme_use("clam")
 
         self.simulador = SimuladorInvernadero()
+        self.mqtt = ConexionMQTT()
         self.fuente = self.simulador
         self.estado_anterior = None
         self.lecturas = 0
         self.hora_ultima_lectura = "--"
+        self.hora_inicio = time.time()
 
         self.crear_encabezado()
         self.crear_paneles()
@@ -34,6 +39,7 @@ class AppInvernadero(tk.Tk):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3, weight=1)
 
+        self.protocol("WM_DELETE_WINDOW", self.cerrar)
         self.registrar_evento("Interfaz iniciada con datos simulados")
         self.actualizar()
 
@@ -42,6 +48,12 @@ class AppInvernadero(tk.Tk):
         encabezado.grid(row=0, column=0, columnspan=2, sticky="ew")
 
         ttk.Label(encabezado, text="Invernadero IoT", font=("Segoe UI", 20, "bold")).pack(side="left")
+
+        self.combo_fuente = ttk.Combobox(encabezado, values=[FUENTE_SIMULADA, FUENTE_MQTT], state="readonly", width=18)
+        self.combo_fuente.set(FUENTE_SIMULADA)
+        self.combo_fuente.bind("<<ComboboxSelected>>", self.cambiar_fuente)
+        self.combo_fuente.pack(side="right")
+        ttk.Label(encabezado, text="Fuente de datos:").pack(side="right", padx=5)
 
     def crear_paneles(self):
         self.panel_variables = PanelVariables(self)
@@ -71,6 +83,7 @@ class AppInvernadero(tk.Tk):
             self.mostrar(estado)
             self.panel_historial.agregar_medicion(estado)
         else:
+            self.panel_variables.mostrar_sin_datos()
             self.panel_controles.mostrar(None)
             self.panel_estado.mostrar_sin_datos()
 
@@ -117,12 +130,37 @@ class AppInvernadero(tk.Tk):
         if estado:
             self.mostrar(estado)
 
+    def cambiar_fuente(self, evento):
+        seleccion = self.combo_fuente.get()
+
+        if seleccion == FUENTE_MQTT and self.fuente is not self.mqtt:
+            try:
+                self.mqtt.conectar()
+            except Exception as error:
+                messagebox.showerror("No se pudo conectar", str(error))
+                self.combo_fuente.set(FUENTE_SIMULADA)
+                return
+            self.fuente = self.mqtt
+        elif seleccion == FUENTE_SIMULADA and self.fuente is not self.simulador:
+            self.mqtt.desconectar()
+            self.fuente = self.simulador
+
+        self.estado_anterior = None
+        self.registrar_evento(f"Fuente de datos: {seleccion}")
+        self.actualizar_info()
+
     def actualizar_info(self):
+        minutos, segundos = divmod(int(time.time() - self.hora_inicio), 60)
         self.lbl_info.config(
             text=f"Fuente: {self.fuente.descripcion()}   |   "
                  f"Última lectura: {self.hora_ultima_lectura}   |   "
-                 f"Lecturas: {self.lecturas}"
+                 f"Lecturas: {self.lecturas}   |   "
+                 f"Tiempo de uso: {minutos:02d}:{segundos:02d}"
         )
+
+    def cerrar(self):
+        self.mqtt.desconectar()
+        self.destroy()
 
 
 if __name__ == "__main__":

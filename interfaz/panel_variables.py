@@ -32,3 +32,9 @@ class PanelVariables(ttk.LabelFrame):
         self.lbl_humedad.config(text=f"{estado['humedad']:.0f} %")
         self.barra_temp["value"] = estado["temp_promedio"]
         self.barra_humedad["value"] = estado["humedad"]
+
+    def mostrar_sin_datos(self):
+        for etiqueta in (self.lbl_temp_actual, self.lbl_temp_promedio, self.lbl_humedad):
+            etiqueta.config(text="--")
+        self.barra_temp["value"] = 0
+        self.barra_humedad["value"] = 0
