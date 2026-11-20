@@ -1,10 +1,20 @@
+import json
 import random
 import time
 import tkinter as tk
 from tkinter import ttk
 
+import paho.mqtt.client as mqtt
+
 UMBRAL_MIN = 20
 UMBRAL_MAX = 45
+
+BROKER = "broker.hivemq.com"
+TOPIC_DATOS = "invernadero/telemetria"
+TOPIC_COMANDOS = "invernadero/comandos"
+SEGUNDOS_SIN_DATOS = 6
+VENTANA_ABIERTA = 0
+VENTANA_CERRADA = 145
 
 
 class AppInvernadero:
@@ -20,13 +30,50 @@ class AppInvernadero:
         self.compuerta_abierta = False
         self.bombillo_prendido = False
 
+        self.datos_esp32 = None
+        self.hora_datos_esp32 = 0
+        self.fuente = ""
+
         self.crear_variables()
         self.crear_estado()
         self.crear_controles()
         self.crear_configuracion()
         self.crear_historial()
 
+        self.conectar_mqtt()
         self.actualizar()
+
+    def conectar_mqtt(self):
+        self.cliente = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self.cliente.on_connect = self.al_conectar
+        self.cliente.on_message = self.recibir_datos
+        self.cliente.connect_async(BROKER, 1883)
+        self.cliente.loop_start()
+
+    def al_conectar(self, cliente, userdata, flags, codigo, propiedades):
+        cliente.subscribe(TOPIC_DATOS)
+
+    def recibir_datos(self, cliente, userdata, mensaje):
+        try:
+            self.datos_esp32 = json.loads(mensaje.payload)
+            self.hora_datos_esp32 = time.time()
+        except ValueError:
+            pass
+
+    def enviar(self, comando):
+        self.cliente.publish(TOPIC_COMANDOS, json.dumps(comando))
+
+    def hay_datos_esp32(self):
+        return self.datos_esp32 is not None and time.time() - self.hora_datos_esp32 < SEGUNDOS_SIN_DATOS
+
+    def usar_datos_esp32(self):
+        datos = self.datos_esp32
+        self.temperatura = datos["temp_promedio"]
+        self.humedad = datos["humedad"]
+        self.modo = datos["modo"]
+        self.umbral = datos["umbral_temp"]
+        self.compuerta_abierta = datos["angulo_ventana"] == VENTANA_ABIERTA
+        self.bombillo_prendido = datos["bombillo"]
 
     def crear_variables(self):
         marco = tk.LabelFrame(self.ventana, text="Variables", padx=10, pady=10)
@@ -44,6 +91,9 @@ class AppInvernadero:
     def crear_estado(self):
         marco = tk.LabelFrame(self.ventana, text="Estado", padx=10, pady=10)
         marco.pack(fill="x", padx=10, pady=5)
+
+        self.lbl_fuente = tk.Label(marco, text="--", font=("Arial", 10, "bold"))
+        self.lbl_fuente.pack(anchor="w")
 
         self.lbl_estado = tk.Label(marco, text="--")
         self.lbl_estado.pack(anchor="w")
@@ -93,9 +143,18 @@ class AppInvernadero:
         self.humedad = random.uniform(50, 70)
 
     def actualizar(self):
-        self.simular_datos()
-        if self.modo == "AUTO":
-            self.compuerta_abierta = self.temperatura > self.umbral
+        if self.hay_datos_esp32():
+            self.usar_datos_esp32()
+            fuente = "ESP32 (maqueta)"
+        else:
+            self.simular_datos()
+            if self.modo == "AUTO":
+                self.compuerta_abierta = self.temperatura > self.umbral
+            fuente = "simulados (sin ESP32)"
+
+        if fuente != self.fuente:
+            self.fuente = fuente
+            self.agregar_historial(f"Usando datos {fuente}")
 
         self.mostrar_datos()
         self.agregar_historial(f"Temp: {self.temperatura:.1f} °C   Hum: {self.humedad:.0f} %")
@@ -105,6 +164,8 @@ class AppInvernadero:
         self.lbl_temperatura.config(text=f"Temperatura: {self.temperatura:.1f} °C")
         self.lbl_humedad.config(text=f"Humedad: {self.humedad:.0f} %")
         self.barra_humedad["value"] = self.humedad
+        self.lbl_fuente.config(text=f"Datos: {self.fuente}")
+        self.combo_modo.set(self.modo)
 
         compuerta = "Abierta" if self.compuerta_abierta else "Cerrada"
         bombillo = "Prendido" if self.bombillo_prendido else "Apagado"
@@ -121,6 +182,7 @@ class AppInvernadero:
 
     def cambiar_modo(self, evento):
         self.modo = self.combo_modo.get()
+        self.enviar({"modo": self.modo})
         self.agregar_historial(f"Modo cambiado a {self.modo}")
         self.mostrar_datos()
 
@@ -130,6 +192,8 @@ class AppInvernadero:
             return
 
         self.compuerta_abierta = not self.compuerta_abierta
+        angulo = VENTANA_ABIERTA if self.compuerta_abierta else VENTANA_CERRADA
+        self.enviar({"angulo_forzado": angulo})
         self.agregar_historial("Compuerta abierta" if self.compuerta_abierta else "Compuerta cerrada")
         self.mostrar_datos()
 
@@ -139,6 +203,7 @@ class AppInvernadero:
             return
 
         self.bombillo_prendido = not self.bombillo_prendido
+        self.enviar({"bombillo": self.bombillo_prendido})
         self.agregar_historial("Bombillo prendido" if self.bombillo_prendido else "Bombillo apagado")
         self.mostrar_datos()
 
@@ -154,6 +219,7 @@ class AppInvernadero:
             return
 
         self.umbral = valor
+        self.enviar({"umbral_temp": valor})
         self.lbl_mensaje.config(text=f"Umbral guardado: {valor} °C", fg="green")
         self.agregar_historial(f"Umbral cambiado a {valor} °C")
         self.mostrar_datos()

@@ -77,10 +77,11 @@ Broker `broker.hivemq.com`. El ESP32 publica su estado en `invernadero/telemetri
 
 ## Interfaz gráfica (Parcial 3)
 
-Está en `interfaz/app.py`. Es una ventana hecha con **Tkinter** que usa **datos simulados**, así que no necesita el ESP32. Se abre con doble clic en `interfaz/abrir_app.bat` o con:
+Está en `interfaz/app.py`. Es una ventana hecha con **Tkinter**. Si el ESP32 está enviando datos por MQTT, muestra los datos reales de la maqueta; si no, usa **datos simulados**. Se abre con doble clic en `interfaz/abrir_app.bat` (instala `paho-mqtt` la primera vez) o con:
 
 ```bash
 cd interfaz
+pip install -r requirements.txt
 python app.py
 ```
 
@@ -91,6 +92,7 @@ python app.py
 - En modo **AUTO** la compuerta se abre sola cuando hace calor. En modo **MANUAL** se controla con los botones.
 - Permite cambiar el umbral de alarma. Valida que sea un número entre 20 y 45.
 - Guarda en un historial las mediciones y lo que hace el usuario.
+- Cada botón también envía la orden al ESP32 por MQTT, así que la maqueta responde a la interfaz.
 
 ### Cómo está hecho
 
@@ -104,3 +106,4 @@ python app.py
 | Actualización periódica | `self.ventana.after(2000, self.actualizar)`: `actualizar()` se vuelve a llamar sola cada 2 s |
 | Datos simulados | `simular_datos()` usa `random`: la temperatura sube poco a poco y baja si la compuerta está abierta |
 | Validación | `aplicar_umbral()`: `try/except` para saber si es número y un `if` para el rango |
+| Conexión con el ESP32 | `conectar_mqtt()` se conecta al broker. `recibir_datos()` guarda lo que publica el ESP32 en `invernadero/telemetria` y `enviar()` manda órdenes a `invernadero/comandos`. Si no llegan datos en 6 s, `actualizar()` usa datos simulados |
