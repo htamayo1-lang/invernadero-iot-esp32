@@ -8,7 +8,7 @@ Este proyecto utiliza un sistema de automatización e IoT para el control microc
 | :--- | :--- | :--- |
 | Raíz del proyecto | Simulación en Wokwi | `diagram.json` |
 | `configuracionESP32_maqueta/` | Placa física (maqueta) | `configuracionESP32_maqueta/diagram.json` |
-| `interfaz/` | App en el PC para ver datos y controlar (Flet + MQTT) | — |
+| `interfaz/` | Interfaz gráfica en el PC (Tkinter), Parcial 3 | — |
 
 El código (`main.py`, `sensores.py`, `actuadores.py`) es el mismo en las dos carpetas. Lo único que cambia es `config.py`, donde están la red Wi-Fi y los pines de cada versión.
 
@@ -75,12 +75,53 @@ Broker `broker.hivemq.com`. El ESP32 publica su estado en `invernadero/telemetri
 
 `angulo_forzado`, `bombillo` y `silenciar` solo se aplican en modo MANUAL.
 
-## Interfaz
+## Interfaz gráfica (Parcial 3)
 
-En `interfaz/` hay una app sencilla hecha con Flet que muestra temperatura, humedad y alerta, y tiene botones para cambiar de modo, abrir/cerrar la compuerta, prender/apagar el bombillo y silenciar el pitido. Se abre con doble clic en `interfaz/abrir_app.bat` (instala las librerías la primera vez) o con:
+Aplicación de escritorio hecha con **Tkinter** para ver el estado del invernadero y controlarlo. Por defecto funciona con **datos simulados**, así que no necesita el ESP32. Desde la lista desplegable *Fuente de datos* se puede cambiar a **ESP32 por MQTT** para usar los datos reales.
+
+### Cómo abrirla
+
+Doble clic en `interfaz/abrir_app.bat`, o:
 
 ```bash
 cd interfaz
-pip install -r requirements.txt
-python app_simple.py
+python app.py
 ```
+
+Tkinter viene incluido con Python. Solo el modo MQTT necesita `pip install -r requirements.txt` (paho-mqtt).
+
+### Qué tiene
+
+| Sección | Qué muestra o hace | Widgets |
+| :--- | :--- | :--- |
+| Encabezado | Título y selector de fuente de datos | `Label`, `Combobox` |
+| Variables | Temperatura actual, promedio y humedad | `Label`, `Progressbar` |
+| Estado del sistema | Modo, compuerta, bombillo, pitido, umbrales y alarma que parpadea | `Label` con colores |
+| Controles | Modo AUTO/MANUAL, abrir/cerrar compuerta, bombillo, silenciar | `Button` |
+| Configuración | Umbral de alarma y del bombillo, con validación | `Entry`, `Button` |
+| Historial | Tabla de mediciones y lista de eventos | `Notebook`, `Treeview`, `Listbox`, `Scrollbar` |
+| Barra inferior | Fuente, última lectura, número de lecturas y tiempo de uso | `Label` |
+
+### Archivos
+
+| Archivo | Contenido |
+| :--- | :--- |
+| `app.py` | Clase `AppInvernadero` (hereda de `tk.Tk`): arma la ventana, une los paneles y repite `actualizar()` cada 2 s con `after()` |
+| `panel_variables.py` | Clase `PanelVariables` |
+| `panel_estado.py` | Clase `PanelEstado` (indicadores y alarma) |
+| `panel_controles.py` | Clase `PanelControles` |
+| `panel_configuracion.py` | Clase `PanelConfiguracion` |
+| `panel_historial.py` | Clase `PanelHistorial` |
+| `validacion.py` | Función `validar_numero()` |
+| `simulador.py` | Clase `SimuladorInvernadero`: genera datos con la misma lógica del firmware |
+| `conexion_mqtt.py` | Clase `ConexionMQTT`: recibe la telemetría y envía órdenes al ESP32 |
+
+### Conceptos usados
+
+- **POO:** cada panel es una clase que hereda de `ttk.LabelFrame` y tiene su método `mostrar(estado)`. `SimuladorInvernadero` y `ConexionMQTT` tienen los mismos métodos (`actualizar`, `estado_actual`, `aplicar_comando`), así que la ventana trabaja igual con cualquiera de las dos fuentes.
+- **Gestores de geometría:** `grid` para la ventana principal y los paneles con filas y columnas, y `pack` dentro de los paneles de controles e historial.
+- **`command`:** en los botones (por ejemplo `command=self.abrir_compuerta`). La función se llama sin argumentos.
+- **`bind`:** `<Return>` en los `Entry` aplica los umbrales y `<<ComboboxSelected>>` cambia la fuente de datos. La función recibe el `evento`.
+- **Actualización periódica:** `after(2000, self.actualizar)` pide datos nuevos cada 2 s, y `after(500, self.parpadear)` hace parpadear la alarma.
+- **Validación:** el campo no puede estar vacío, debe ser un número (acepta coma o punto), debe estar dentro del rango, y el umbral del bombillo debe ser menor que el de alarma. Los errores se muestran en rojo y quedan en el historial de eventos.
+- **Datos simulados:** la temperatura sube poco a poco y baja cuando la compuerta está abierta, así que en modo AUTO se ve cómo se activa y se apaga la alarma.
