@@ -17,7 +17,7 @@ class PanelControles(ttk.LabelFrame):
         self.btn_manual = ttk.Button(modos, text="Modo MANUAL", command=self.modo_manual)
         self.btn_manual.pack(side="left", expand=True, fill="x", padx=2)
 
-        ttk.Label(self, text="Solo disponibles en modo MANUAL:").pack(anchor="w", pady=(12, 4))
+        ttk.Label(self, text="Solo disponibles en modo MANUAL:").pack(anchor="w", pady=(8, 2))
 
         manuales = ttk.Frame(self)
         manuales.pack(fill="x")

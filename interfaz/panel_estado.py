@@ -33,10 +33,10 @@ class PanelEstado(ttk.LabelFrame):
         self.lbl_pitido = self.crear_indicador(3, "Pitido")
 
         self.lbl_umbrales = ttk.Label(self, text="Umbrales: --", foreground=GRIS)
-        self.lbl_umbrales.grid(row=4, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        self.lbl_umbrales.grid(row=4, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
-        self.lbl_alarma = tk.Label(self, text="ESPERANDO DATOS", font=("Segoe UI", 14, "bold"), fg="white", bg=GRIS, pady=8)
-        self.lbl_alarma.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        self.lbl_alarma = tk.Label(self, text="ESPERANDO DATOS", font=("Segoe UI", 13, "bold"), fg="white", bg=GRIS, pady=5)
+        self.lbl_alarma.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
 
     def crear_indicador(self, fila, texto):
         ttk.Label(self, text=texto).grid(row=fila, column=0, sticky="w", pady=2)

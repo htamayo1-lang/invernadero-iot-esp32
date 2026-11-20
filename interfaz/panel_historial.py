@@ -33,7 +33,7 @@ class PanelHistorial(ttk.LabelFrame):
         marco = ttk.Frame(pestanas)
         pestanas.add(marco, text="Mediciones")
 
-        tabla = ttk.Treeview(marco, columns=[clave for clave, _, _ in COLUMNAS], show="headings", height=7)
+        tabla = ttk.Treeview(marco, columns=[clave for clave, _, _ in COLUMNAS], show="headings", height=6)
         for clave, titulo, ancho in COLUMNAS:
             tabla.heading(clave, text=titulo)
             tabla.column(clave, width=ancho, anchor="center")

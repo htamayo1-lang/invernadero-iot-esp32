@@ -17,13 +17,13 @@ class PanelVariables(ttk.LabelFrame):
 
     def crear_fila(self, fila, texto):
         ttk.Label(self, text=texto).grid(row=fila, column=0, sticky="w")
-        valor = ttk.Label(self, text="--", font=("Segoe UI", 18, "bold"))
+        valor = ttk.Label(self, text="--", font=("Segoe UI", 16, "bold"))
         valor.grid(row=fila, column=1, sticky="e")
         return valor
 
     def crear_barra(self, fila, maximo):
         barra = ttk.Progressbar(self, maximum=maximo)
-        barra.grid(row=fila, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+        barra.grid(row=fila, column=0, columnspan=2, sticky="ew", pady=(0, 6))
         return barra
 
     def mostrar(self, estado):

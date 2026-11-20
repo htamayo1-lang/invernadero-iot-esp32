@@ -19,9 +19,13 @@ class AppInvernadero(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Invernadero IoT - Panel de control")
-        self.geometry("980x760")
-        self.minsize(900, 700)
-        ttk.Style(self).theme_use("clam")
+        self.geometry("980x720")
+        self.minsize(900, 640)
+        self.state("zoomed")
+
+        estilo = ttk.Style(self)
+        estilo.theme_use("clam")
+        estilo.configure("TButton", padding=3)
 
         self.simulador = SimuladorInvernadero()
         self.mqtt = ConexionMQTT()
@@ -44,10 +48,10 @@ class AppInvernadero(tk.Tk):
         self.actualizar()
 
     def crear_encabezado(self):
-        encabezado = ttk.Frame(self, padding=(15, 10))
+        encabezado = ttk.Frame(self, padding=(15, 6))
         encabezado.grid(row=0, column=0, columnspan=2, sticky="ew")
 
-        ttk.Label(encabezado, text="Invernadero IoT", font=("Segoe UI", 20, "bold")).pack(side="left")
+        ttk.Label(encabezado, text="Invernadero IoT", font=("Segoe UI", 18, "bold")).pack(side="left")
 
         self.combo_fuente = ttk.Combobox(encabezado, values=[FUENTE_SIMULADA, FUENTE_MQTT], state="readonly", width=18)
         self.combo_fuente.set(FUENTE_SIMULADA)
@@ -57,19 +61,19 @@ class AppInvernadero(tk.Tk):
 
     def crear_paneles(self):
         self.panel_variables = PanelVariables(self)
-        self.panel_variables.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        self.panel_variables.grid(row=1, column=0, sticky="nsew", padx=10, pady=3)
 
         self.panel_estado = PanelEstado(self)
-        self.panel_estado.grid(row=1, column=1, sticky="nsew", padx=10, pady=5)
+        self.panel_estado.grid(row=1, column=1, sticky="nsew", padx=10, pady=3)
 
         self.panel_controles = PanelControles(self, self.enviar_comando)
-        self.panel_controles.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        self.panel_controles.grid(row=2, column=0, sticky="nsew", padx=10, pady=3)
 
         self.panel_configuracion = PanelConfiguracion(self, self.enviar_comando, self.registrar_evento)
-        self.panel_configuracion.grid(row=2, column=1, sticky="nsew", padx=10, pady=5)
+        self.panel_configuracion.grid(row=2, column=1, sticky="nsew", padx=10, pady=3)
 
         self.panel_historial = PanelHistorial(self)
-        self.panel_historial.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+        self.panel_historial.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=3)
 
     def crear_barra_estado(self):
         self.lbl_info = ttk.Label(self, text="Iniciando...", relief="sunken", padding=(10, 3))
